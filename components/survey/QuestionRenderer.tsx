@@ -8,6 +8,8 @@ import { IntervalInput } from './IntervalInput'
 import { PersonCard, Person } from './PersonCard'
 import { GoalList, Goal } from './GoalList'
 import { EventList, UserEvent } from './EventList'
+import { useLanguage } from '@/lib/i18n/context'
+import { questionTranslationsEn } from '@/lib/i18n/questions'
 
 interface Props {
   question: Question
@@ -16,11 +18,20 @@ interface Props {
   showScaleGuide?: boolean
 }
 
+const SCALE_0_3_EN = ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
+const SCALE_0_3_RU = ['Ни разу', 'Несколько дней', 'Больше половины дней', 'Почти каждый день']
+const SCALE_0_4_EN = ['Never', 'Almost never', 'Sometimes', 'Fairly often', 'Very often']
+const SCALE_0_4_RU = ['Никогда', 'Почти никогда', 'Иногда', 'Достаточно часто', 'Очень часто']
+
 export function QuestionRenderer({ question, value, onChange, showScaleGuide = false }: Props) {
+  const { lang } = useLanguage()
   const { type, options, min, max, unit } = question
 
+  const qTrans = lang === 'en' ? questionTranslationsEn[question.id] : undefined
+  const displayOptions = qTrans?.options ?? options
+
   if (type === 'likert5') {
-    const labels = options && options.length === 5 ? options : undefined
+    const labels = displayOptions && displayOptions.length === 5 ? displayOptions : undefined
     return (
       <LikertScale
         id={question.id}
@@ -45,7 +56,7 @@ export function QuestionRenderer({ question, value, onChange, showScaleGuide = f
   }
 
   if (type === 'scale_0_3') {
-    const opts = options ?? ['Ни разу', 'Несколько дней', 'Больше половины дней', 'Почти каждый день']
+    const opts = displayOptions ?? (lang === 'en' ? SCALE_0_3_EN : SCALE_0_3_RU)
     return (
       <ChoiceInput
         options={opts}
@@ -56,8 +67,7 @@ export function QuestionRenderer({ question, value, onChange, showScaleGuide = f
   }
 
   if (type === 'scale_0_4') {
-    // Храним raw index (0..N-1), reverse применяется только в scoring — в UI его быть не должно
-    const opts = options ?? ['Никогда', 'Почти никогда', 'Иногда', 'Достаточно часто', 'Очень часто']
+    const opts = displayOptions ?? (lang === 'en' ? SCALE_0_4_EN : SCALE_0_4_RU)
     return (
       <ChoiceInput
         options={opts}
@@ -81,7 +91,7 @@ export function QuestionRenderer({ question, value, onChange, showScaleGuide = f
   if (type === 'choice') {
     return (
       <ChoiceInput
-        options={options ?? []}
+        options={displayOptions ?? []}
         value={value as string | null}
         onChange={onChange}
       />
@@ -91,7 +101,7 @@ export function QuestionRenderer({ question, value, onChange, showScaleGuide = f
   if (type === 'multichoice') {
     return (
       <ChoiceInput
-        options={options ?? []}
+        options={displayOptions ?? []}
         value={null}
         onChange={() => {}}
         multi
@@ -119,7 +129,7 @@ export function QuestionRenderer({ question, value, onChange, showScaleGuide = f
         value={value as string ?? ''}
         onChange={e => onChange(e.target.value)}
         rows={4}
-        placeholder="Ваш ответ…"
+        placeholder={lang === 'en' ? 'Your answer…' : 'Ваш ответ…'}
         className="w-full font-serif text-[16px] leading-[1.5] px-4 py-3 border border-rule bg-bg text-text focus:border-text focus:outline-none transition-colors resize-none"
       />
     )
@@ -162,5 +172,5 @@ export function QuestionRenderer({ question, value, onChange, showScaleGuide = f
     )
   }
 
-  return <p className="ui text-[13px] text-risk">Неизвестный тип вопроса: {type}</p>
+  return <p className="ui text-[13px] text-risk">Unknown question type: {type}</p>
 }

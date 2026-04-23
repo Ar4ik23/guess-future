@@ -2,12 +2,19 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useState, useEffect, useCallback } from 'react'
-import { ALL_BLOCKS, BLOCK_ORDER, BLOCK_LABELS, BlockKey, Question } from '@/lib/questions'
+import { ALL_BLOCKS, BLOCK_ORDER, BlockKey, Question } from '@/lib/questions'
+import { BLOCK_LABELS_EN } from '@/lib/i18n/ui'
+import { BLOCK_LABELS } from '@/lib/questions'
 import { QuestionRenderer } from '@/components/survey/QuestionRenderer'
+import { useLanguage } from '@/lib/i18n/context'
+import { UI } from '@/lib/i18n/ui'
+import { questionTranslationsEn } from '@/lib/i18n/questions'
 
 export default function BlockPage() {
   const params = useParams()
   const router = useRouter()
+  const { lang } = useLanguage()
+  const t = UI[lang].block
   const block = (params.block as string)?.toUpperCase() as BlockKey
 
   const questions = ALL_BLOCKS[block] ?? []
@@ -57,7 +64,7 @@ export default function BlockPage() {
         router.push('/survey/processing')
       }
     } catch {
-      alert('Ошибка сохранения, попробуйте ещё раз')
+      alert(lang === 'en' ? 'Save error, please try again' : 'Ошибка сохранения, попробуйте ещё раз')
     } finally {
       setSaving(false)
     }
@@ -72,38 +79,45 @@ export default function BlockPage() {
   }
 
   if (!isValidBlock) {
-    return <div className="text-center text-muted mt-20 ui">Блок не найден</div>
+    return <div className="text-center text-muted mt-20 ui">{t.notFound}</div>
   }
+
+  const labels = lang === 'en' ? BLOCK_LABELS_EN : BLOCK_LABELS
 
   return (
     <div>
       <div className="mb-12">
         <p className="ui text-[13px] uppercase tracking-[0.14em] text-muted mb-3">
-          Блок {blockIdx + 1} из {BLOCK_ORDER.length} · {questions.length} вопросов
+          {t.blockOf(blockIdx + 1, BLOCK_ORDER.length, questions.length)}
         </p>
         <h1 className="font-serif text-[clamp(32px,4.5vw,40px)] font-medium leading-[1.1] tracking-[-0.01em] text-ink">
-          {BLOCK_LABELS[block]}.
+          {labels[block]}.
         </h1>
       </div>
 
       <div className="flex flex-col border-t border-rule">
-        {questions.map((q: Question, idx: number) => (
-          <div key={q.id} className="border-b border-rule py-8">
-            <p className="ui text-[11px] text-subtle num mb-3">
-              {String(idx + 1).padStart(2, '0')} / {String(questions.length).padStart(2, '0')}
-            </p>
-            <p className="font-serif text-[21px] text-ink leading-[1.35] mb-1 font-medium">{q.text}</p>
-            {q.hint && <p className="ui text-[14px] text-muted italic mt-2 mb-5">{q.hint}</p>}
-            <div className="mt-5">
-              <QuestionRenderer
-                question={q}
-                value={answers[q.id] ?? null}
-                onChange={v => setAnswer(q.id, v)}
-                showScaleGuide={block === 'A' && idx === 0}
-              />
+        {questions.map((q: Question, idx: number) => {
+          const qTrans = lang === 'en' ? questionTranslationsEn[q.id] : undefined
+          const displayText = qTrans?.text ?? q.text
+          const displayHint = qTrans?.hint ?? q.hint
+          return (
+            <div key={q.id} className="border-b border-rule py-8">
+              <p className="ui text-[11px] text-subtle num mb-3">
+                {String(idx + 1).padStart(2, '0')} / {String(questions.length).padStart(2, '0')}
+              </p>
+              <p className="font-serif text-[21px] text-ink leading-[1.35] mb-1 font-medium">{displayText}</p>
+              {displayHint && <p className="ui text-[14px] text-muted italic mt-2 mb-5">{displayHint}</p>}
+              <div className="mt-5">
+                <QuestionRenderer
+                  question={q}
+                  value={answers[q.id] ?? null}
+                  onChange={v => setAnswer(q.id, v)}
+                  showScaleGuide={block === 'A' && idx === 0}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="flex gap-3 mt-12">
@@ -111,19 +125,19 @@ export default function BlockPage() {
           onClick={handleBack}
           className="ui flex-1 border-2 border-rule px-6 py-3.5 text-[14px] font-medium text-ink hover:border-ink transition-colors cursor-pointer"
         >
-          ← Назад
+          {t.back}
         </button>
         <button
           onClick={handleNext}
           disabled={saving}
           className="ui flex-1 bg-ink text-bg px-6 py-3.5 text-[14px] font-medium hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
-          {saving ? 'Сохранение…' : blockIdx === BLOCK_ORDER.length - 1 ? 'Получить прогноз →' : 'Далее →'}
+          {saving ? t.saving : blockIdx === BLOCK_ORDER.length - 1 ? t.finish : t.next}
         </button>
       </div>
 
       <p className="ui text-[12px] text-muted text-center mt-4">
-        Ответы сохраняются автоматически при переходе
+        {t.autoSave}
       </p>
     </div>
   )

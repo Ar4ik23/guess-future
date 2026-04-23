@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Source_Serif_4, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { LanguageProvider } from "@/lib/i18n/context";
 
 const serif = Source_Serif_4({
   variable: "--font-serif",
@@ -23,7 +24,7 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Test Guringtona",
-  description: "Вероятностный прогноз на 12 месяцев — по 150+ параметрам. Бесплатно.",
+  description: "Probabilistic 12-month life forecast — 150+ parameters. Free.",
 };
 
 export default function RootLayout({
@@ -33,10 +34,12 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="ru"
+      lang="en"
       className={`${serif.variable} ${sans.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }

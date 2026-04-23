@@ -2,64 +2,28 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
+import { UI } from '@/lib/i18n/ui'
 
-interface Option { label: string; w: number }
-interface Q { q: string; opts: Option[] }
-
-const QUESTIONS: Q[] = [
-  {
-    q: 'За последние 3 месяца, сколько ночей в неделю вы спите меньше 6 часов?',
-    opts: [
-      { label: '0–1 ночь', w: 0.10 },
-      { label: '2–3 ночи', w: 0.35 },
-      { label: '4–5 ночей', w: 0.65 },
-      { label: 'почти каждую ночь', w: 0.90 },
-    ],
-  },
-  {
-    q: 'Когда вам приходится принять крупное решение, вы чаще всего:',
-    opts: [
-      { label: 'взвешиваю варианты и беру паузу', w: 0.20 },
-      { label: 'советуюсь с кем-то близким', w: 0.35 },
-      { label: 'решаю быстро и двигаюсь', w: 0.55 },
-      { label: 'откладываю, пока не потребует срочности', w: 0.80 },
-    ],
-  },
-  {
-    q: 'Если ваш доход завтра исчезнет, сколько месяцев вы продержитесь на накоплениях?',
-    opts: [
-      { label: 'больше 12 месяцев', w: 0.10 },
-      { label: '6–12 месяцев', w: 0.30 },
-      { label: '2–5 месяцев', w: 0.55 },
-      { label: 'меньше месяца', w: 0.85 },
-    ],
-  },
+const WEIGHTS = [
+  [0.10, 0.35, 0.65, 0.90],
+  [0.20, 0.35, 0.55, 0.80],
+  [0.10, 0.30, 0.55, 0.85],
 ]
 
 export function TeaserTest() {
+  const { lang } = useLanguage()
+  const t = UI[lang].teaser
   const [idx, setIdx] = useState(0)
-  const [answers, setAnswers] = useState<Array<number | null>>(() => QUESTIONS.map(() => null))
+  const [answers, setAnswers] = useState<Array<number | null>>(() => t.questions.map(() => null))
   const [done, setDone] = useState(false)
 
   if (done) {
-    const weights = answers.map((a, i) => (a !== null ? QUESTIONS[i].opts[a].w : 0))
+    const weights = answers.map((a, i) => (a !== null ? WEIGHTS[i][a] : 0))
     const risk = weights.reduce((s, w) => s + w, 0) / weights.length
     const stability = 100 - Math.round(risk * 100)
 
-    let title: string, body: string
-    if (risk < 0.30) {
-      title = 'Устойчивый профиль'
-      body =
-        'По этим трём параметрам вы в стабильной зоне. Вероятность значимых негативных сдвигов в 12-месячном окне — низкая. Полный тест уточнит, где именно спрятаны неочевидные риски.'
-    } else if (risk < 0.55) {
-      title = 'Смешанный профиль'
-      body =
-        'Ваш профиль содержит два-три параметра с умеренным отклонением. Прогноз не критичен, но корректировка одного ключевого параметра способна заметно снизить риск. Полный тест покажет, какого именно.'
-    } else {
-      title = 'Требует внимания'
-      body =
-        'По показанной выборке параметров вероятность напряжённых сценариев в ближайший год заметно повышена. Это не приговор — это сигнал. Полный тест даст точные рекомендации и сценарии выхода.'
-    }
+    const result = risk < 0.30 ? t.stable : risk < 0.55 ? t.mixed : t.attention
 
     const R = 48
     const C = 2 * Math.PI * R
@@ -83,38 +47,38 @@ export function TeaserTest() {
             >{stability}</text>
           </svg>
           <p className="ui text-[11px] uppercase tracking-[0.14em] text-muted mb-2">
-            Предварительное чтение
+            {t.readingLabel}
           </p>
-          <h3 className="font-serif text-[28px] font-medium leading-[1.2] text-ink mb-4">{title}</h3>
-          <p className="text-[17px] text-muted max-w-[480px] mb-7 leading-[1.6]">{body}</p>
+          <h3 className="font-serif text-[28px] font-medium leading-[1.2] text-ink mb-4">{result.title}</h3>
+          <p className="text-[17px] text-muted max-w-[480px] mb-7 leading-[1.6]">{result.body}</p>
           <div className="flex gap-3 flex-wrap justify-center">
             <Link
               href="/survey"
               className="ui inline-flex items-center gap-2 bg-ink text-bg px-7 py-3.5 text-[14px] font-medium hover:bg-accent transition-colors no-underline"
             >
-              Пройти полный тест →
+              {t.ctaFull}
             </Link>
             <button
               type="button"
               onClick={() => {
-                setAnswers(QUESTIONS.map(() => null))
+                setAnswers(t.questions.map(() => null))
                 setIdx(0)
                 setDone(false)
               }}
               className="ui inline-flex items-center gap-2 border-2 border-rule px-7 py-3.5 text-[14px] font-medium text-ink hover:border-ink transition-colors cursor-pointer"
             >
-              Начать заново
+              {t.ctaRetake}
             </button>
           </div>
           <p className="ui text-[12px] text-muted mt-8 leading-[1.5]">
-            Демо-версия · 3 из 150+ параметров · полный прогноз покрывает 15 категорий событий и 3 сценария года
+            {t.demoNote}
           </p>
         </div>
       </div>
     )
   }
 
-  const q = QUESTIONS[idx]
+  const q = t.questions[idx]
   const selected = answers[idx]
   const canNext = selected !== null
 
@@ -122,12 +86,12 @@ export function TeaserTest() {
     <div className="teaser-card">
       <div className="flex items-center justify-between mb-8 ui text-[12px] text-muted uppercase tracking-[0.08em]">
         <span className="num">
-          Вопрос {String(idx + 1).padStart(2, '0')} / {String(QUESTIONS.length).padStart(2, '0')}
+          {t.labelQ} {String(idx + 1).padStart(2, '0')} / {String(t.questions.length).padStart(2, '0')}
         </span>
         <div className="flex-1 h-[2px] bg-rule mx-5 overflow-hidden">
-          <div className="h-full bg-accent transition-all" style={{ width: `${(idx / QUESTIONS.length) * 100}%` }} />
+          <div className="h-full bg-accent transition-all" style={{ width: `${(idx / t.questions.length) * 100}%` }} />
         </div>
-        <span>Мини-диагностика</span>
+        <span>{t.labelMini}</span>
       </div>
 
       <p className="font-serif text-[clamp(22px,2.6vw,28px)] text-ink leading-[1.25] mb-8">
@@ -159,7 +123,7 @@ export function TeaserTest() {
               >
                 {active && <span className="w-[6px] h-[6px] rounded-full bg-ink" />}
               </span>
-              <span className="font-serif text-[17px] leading-[1.35]">{o.label}</span>
+              <span className="font-serif text-[17px] leading-[1.35]">{o}</span>
             </button>
           )
         })}
@@ -172,19 +136,19 @@ export function TeaserTest() {
           disabled={idx === 0}
           className="ui border-2 border-rule px-6 py-3 text-[14px] font-medium text-ink hover:border-ink transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
         >
-          ← Назад
+          {t.back}
         </button>
         <button
           type="button"
           onClick={() => {
             if (!canNext) return
-            if (idx === QUESTIONS.length - 1) setDone(true)
+            if (idx === t.questions.length - 1) setDone(true)
             else setIdx(idx + 1)
           }}
           disabled={!canNext}
           className="ui bg-ink text-bg px-6 py-3 text-[14px] font-medium hover:bg-accent transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
         >
-          {idx === QUESTIONS.length - 1 ? 'Посчитать →' : 'Далее →'}
+          {idx === t.questions.length - 1 ? t.calculate : t.next}
         </button>
       </div>
     </div>

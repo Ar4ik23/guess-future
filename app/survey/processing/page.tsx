@@ -4,32 +4,27 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BLOCK_ORDER } from '@/lib/questions'
-
-const STEPS = [
-  'Анализируем психологический портрет',
-  'Оцениваем текущее положение',
-  'Изучаем социальное окружение',
-  'Просчитываем вероятности событий',
-  'Запускаем 10 000 симуляций Монте-Карло',
-  'Формируем персональный нарратив',
-]
+import { useLanguage } from '@/lib/i18n/context'
+import { UI } from '@/lib/i18n/ui'
 
 export default function ProcessingPage() {
   const router = useRouter()
+  const { lang } = useLanguage()
+  const t = UI[lang].processing
   const [step, setStep] = useState(0)
   const [error, setError] = useState('')
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setStep(s => Math.min(s + 1, STEPS.length - 1))
+      setStep(s => Math.min(s + 1, t.steps.length - 1))
     }, 2500)
     return () => clearInterval(interval)
-  }, [])
+  }, [t.steps.length])
 
   useEffect(() => {
     const run = async () => {
       const userId = localStorage.getItem('gf_user_id')
-      if (!userId) { setError('Сессия не найдена. Вернитесь на главную.'); return }
+      if (!userId) { setError(t.errorSession); return }
 
       const allAnswers: Record<string, unknown> = {}
       for (const block of BLOCK_ORDER) {
@@ -58,23 +53,24 @@ export default function ProcessingPage() {
         if (data.predictionId) {
           router.push(`/result/${data.predictionId}`)
         } else {
-          setError('Ошибка генерации прогноза. Попробуйте ещё раз.')
+          setError(t.errorGenerate)
         }
       } catch {
-        setError('Ошибка соединения. Проверьте интернет и попробуйте ещё раз.')
+        setError(t.errorConnection)
       }
     }
     run()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router])
 
   if (error) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center px-6">
         <div className="max-w-[440px] w-full text-center">
-          <p className="ui text-[11px] uppercase tracking-[0.14em] text-risk mb-4">Ошибка</p>
+          <p className="ui text-[11px] uppercase tracking-[0.14em] text-risk mb-4">{t.errorLabel}</p>
           <p className="font-serif text-[22px] text-text leading-[1.35] mb-6">{error}</p>
           <Link href="/" className="ui text-[14px] text-accent underline underline-offset-4">
-            Вернуться на главную
+            {t.errorBack}
           </Link>
         </div>
       </div>
@@ -85,15 +81,14 @@ export default function ProcessingPage() {
     <div className="min-h-screen bg-bg flex items-center justify-center px-6">
       <div className="max-w-[520px] w-full text-center">
         <p className="ui text-[11px] uppercase tracking-[0.14em] text-muted mb-5">
-          Расчёт прогноза
+          {t.label}
         </p>
         <h1 className="font-serif text-[clamp(32px,5vw,44px)] font-medium leading-[1.1] tracking-[-0.01em] mb-10">
-          Строим ваш прогноз.
+          {t.title}
         </h1>
 
-        {/* Steps */}
         <div className="flex flex-col gap-3 text-left border-t border-rule">
-          {STEPS.map((s, i) => {
+          {t.steps.map((s, i) => {
             const done = i < step
             const active = i === step
             return (
@@ -110,7 +105,7 @@ export default function ProcessingPage() {
         </div>
 
         <p className="ui text-[13px] text-muted mt-8">
-          Обычно занимает 30–60 секунд
+          {t.footer}
         </p>
       </div>
     </div>
