@@ -2,6 +2,7 @@ export interface QTrans {
   text: string
   hint?: string
   options?: string[]
+  unit?: string
 }
 
 const PHQ_OPTS = ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']

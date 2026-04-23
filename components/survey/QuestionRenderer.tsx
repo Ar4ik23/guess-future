@@ -29,6 +29,7 @@ export function QuestionRenderer({ question, value, onChange, showScaleGuide = f
 
   const qTrans = lang === 'en' ? questionTranslationsEn[question.id] : undefined
   const displayOptions = qTrans?.options ?? options
+  const displayUnit = qTrans?.unit ?? unit
 
   if (type === 'likert5') {
     const labels = displayOptions && displayOptions.length === 5 ? displayOptions : undefined
@@ -118,7 +119,7 @@ export function QuestionRenderer({ question, value, onChange, showScaleGuide = f
         onChange={onChange}
         min={min}
         max={max}
-        unit={unit}
+        unit={displayUnit}
       />
     )
   }
