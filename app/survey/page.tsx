@@ -1,14 +1,23 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n/context'
 import { UI, BLOCK_LABELS_EN } from '@/lib/i18n/ui'
 import { BLOCK_ORDER, BLOCK_LABELS } from '@/lib/questions'
 
 export default function SurveyIntroPage() {
+  const router = useRouter()
   const { lang } = useLanguage()
   const t = UI[lang].survey
   const labels = lang === 'en' ? BLOCK_LABELS_EN : BLOCK_LABELS
+
+  const startFresh = () => {
+    for (const block of BLOCK_ORDER) {
+      localStorage.removeItem(`gf_block_${block}`)
+    }
+    router.push('/survey/a')
+  }
 
   return (
     <div>
@@ -66,12 +75,13 @@ export default function SurveyIntroPage() {
       </div>
 
       <div className="flex gap-3 flex-wrap">
-        <Link
-          href="/survey/a"
-          className="ui inline-flex items-center gap-2 bg-ink text-bg px-8 py-4 text-[14px] font-medium hover:bg-accent transition-colors no-underline"
+        <button
+          type="button"
+          onClick={startFresh}
+          className="ui inline-flex items-center gap-2 bg-ink text-bg px-8 py-4 text-[14px] font-medium hover:bg-accent transition-colors cursor-pointer"
         >
           {t.ctaStart}
-        </Link>
+        </button>
         <Link
           href="/"
           className="ui inline-flex items-center gap-2 border-2 border-rule px-8 py-4 text-[14px] font-medium text-ink hover:border-ink transition-colors no-underline"

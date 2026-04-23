@@ -1,5 +1,7 @@
 'use client'
 
+import { useLanguage } from '@/lib/i18n/context'
+
 interface IntervalValue {
   answer: number | ''
   low: number | ''
@@ -12,14 +14,23 @@ interface Props {
 }
 
 export function IntervalInput({ value, onChange }: Props) {
+  const { lang } = useLanguage()
   const set = (field: keyof IntervalValue, v: number | '') =>
     onChange({ ...value, [field]: v })
 
-  const rows: [keyof IntervalValue, string, string][] = [
-    ['answer', 'Мой ответ', 'число'],
-    ['low', 'Нижняя граница (90%)', 'мин'],
-    ['high', 'Верхняя граница (90%)', 'макс'],
+  const rows: [keyof IntervalValue, string, string][] = lang === 'en' ? [
+    ['answer', 'My answer',        'number'],
+    ['low',    'Lower bound (90%)', 'min'],
+    ['high',   'Upper bound (90%)', 'max'],
+  ] : [
+    ['answer', 'Мой ответ',          'число'],
+    ['low',    'Нижняя граница (90%)', 'мин'],
+    ['high',   'Верхняя граница (90%)', 'макс'],
   ]
+
+  const hint = lang === 'en'
+    ? 'Specify the range you are 90% confident in'
+    : 'Укажите диапазон, в котором вы уверены на 90%'
 
   return (
     <div className="flex flex-col gap-3">
@@ -35,9 +46,7 @@ export function IntervalInput({ value, onChange }: Props) {
           />
         </div>
       ))}
-      <p className="ui text-[12px] text-muted mt-1">
-        Укажите диапазон, в котором вы уверены на 90%
-      </p>
+      <p className="ui text-[12px] text-muted mt-1">{hint}</p>
     </div>
   )
 }

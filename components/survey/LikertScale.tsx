@@ -1,5 +1,7 @@
 'use client'
 
+import { useLanguage } from '@/lib/i18n/context'
+
 interface Props {
   id: string
   value: number | null
@@ -11,16 +13,17 @@ interface Props {
 }
 
 export function LikertScale({ value, onChange, min = 1, max = 5, labels, showScaleGuide }: Props) {
+  const { lang } = useLanguage()
   const steps = Array.from({ length: max - min + 1 }, (_, i) => i + min)
+
+  const guide = lang === 'en'
+    ? <><span className="num text-ink font-semibold">1</span> — not at all · <span className="num text-ink font-semibold">3</span> — neutral · <span className="num text-ink font-semibold">5</span> — completely</>
+    : <><span className="num text-ink font-semibold">1</span> — совсем нет · <span className="num text-ink font-semibold">3</span> — ни да, ни нет · <span className="num text-ink font-semibold">5</span> — полностью да</>
 
   return (
     <div className="flex flex-col gap-3">
       {showScaleGuide && min === 1 && max === 5 && (
-        <p className="ui text-[13px] text-muted">
-          <span className="num text-ink font-semibold">1</span> — совсем нет ·{' '}
-          <span className="num text-ink font-semibold">3</span> — ни да, ни нет ·{' '}
-          <span className="num text-ink font-semibold">5</span> — полностью да
-        </p>
+        <p className="ui text-[13px] text-muted">{guide}</p>
       )}
       <div className="flex gap-2 flex-wrap">
         {steps.map(n => {
