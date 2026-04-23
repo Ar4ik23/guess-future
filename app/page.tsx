@@ -65,9 +65,9 @@ export default function HomePage() {
               {t.stats.map(([num, label], i) => (
                 <div
                   key={i}
-                  className={`px-0 md:px-6 md:first:pl-0 md:last:pr-0 ${i > 0 ? 'md:border-l border-rule' : ''}`}
+                  className={`min-w-0 px-0 md:px-4 md:first:pl-0 md:last:pr-0 ${i > 0 ? 'md:border-l border-rule' : ''}`}
                 >
-                  <div className="font-serif text-[clamp(32px,4vw,48px)] font-medium leading-none mb-2.5 text-ink num">
+                  <div className="font-serif text-[clamp(28px,3.2vw,42px)] font-medium leading-none mb-2.5 text-ink num overflow-hidden break-all">
                     {num}
                   </div>
                   <div className="ui text-[12px] text-muted leading-[1.45] whitespace-pre-line">{label}</div>
