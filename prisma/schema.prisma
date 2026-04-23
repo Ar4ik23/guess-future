@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String           @id @default(cuid())
+  createdAt   DateTime         @default(now())
+  responses   SurveyResponse[]
+  predictions Prediction[]
+}
+
+model SurveyResponse {
+  id         String   @id @default(cuid())
+  userId     String
+  block      String
+  questionId String
+  valueJson  String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Prediction {
+  id        String   @id @default(cuid())
+  userId    String
+  status    String   @default("pending")
+  events    String   @default("[]")
+  narrative String   @default("")
+  scenarios String   @default("[]")
+  scores    String   @default("{}")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
