@@ -39,10 +39,12 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
+type ResultT = typeof UI['en']['result'] | typeof UI['ru']['result']
+
 function ScenarioRow({ scenario, explanation, t }: {
   scenario: Scenario
   explanation?: string
-  t: typeof UI['en']['result']
+  t: ResultT
 }) {
   const [open, setOpen] = useState(false)
   return (
@@ -88,7 +90,7 @@ function ScenarioRow({ scenario, explanation, t }: {
 function EventRow({ ev, explanation, t }: {
   ev: EventResult
   explanation?: string
-  t: typeof UI['en']['result']
+  t: ResultT
 }) {
   const [open, setOpen] = useState(false)
   const pct = Math.round(ev.probability * 100)
@@ -132,7 +134,7 @@ function AIAssessmentBlock({ advice, strengths, risks, t }: {
   advice: AdviceItem[]
   strengths: string[]
   risks: string[]
-  t: typeof UI['en']['result']
+  t: ResultT
 }) {
   const [open, setOpen] = useState(false)
   const hasContent = advice.length > 0 || strengths.length > 0 || risks.length > 0
