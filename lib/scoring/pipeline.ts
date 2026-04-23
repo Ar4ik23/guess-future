@@ -18,7 +18,7 @@ function bfiBig5Direct(r: Responses) {
   }
 }
 
-export async function runPredictionPipeline(responses: Responses) {
+export async function runPredictionPipeline(responses: Responses, lang: 'en' | 'ru' = 'ru') {
   const phq9 = calcPHQ9(responses)
 
   // Кризисный триггер
@@ -67,21 +67,27 @@ export async function runPredictionPipeline(responses: Responses) {
   }
 
   const eventProbs = calcEventProbabilities(responses, scores)
-  const { scenarios, entropy, topEvents } = runSimulation(eventProbs, blLambda)
+  const { scenarios, entropy, topEvents } = runSimulation(eventProbs, blLambda, 10000, lang)
 
-  // Составляем текстовые саммари для LLM
   const closeCircle = get(responses,'F01')
   const growing = get(responses,'F24')
-  const socSummary = `Близкий круг: ${closeCircle} чел., из них растут ${growing}, социальный индекс ${Math.round(lsi.Social)}/100`
 
-  const psycheSummary = `PHQ-9=${phq9} (${phq9<5?'норма':phq9<10?'лёгкая':phq9<15?'умеренная':'тяжёлая'}), GAD-7=${gad7}, стресс PSS-4=${pss4}, добросовестность ${big5.Conscientiousness.toFixed(1)}/5, нейротизм ${big5.Neuroticism.toFixed(1)}/5`
+  const socSummary = lang === 'en'
+    ? `Close circle: ${closeCircle} people, of which ${growing} are growing; social index ${Math.round(lsi.Social)}/100`
+    : `Близкий круг: ${closeCircle} чел., из них растут ${growing}, социальный индекс ${Math.round(lsi.Social)}/100`
 
-  const ethnicity = (responses['B24'] as string) || 'не указана'
-  const country = (responses['B05'] as string) || 'не указана'
-  const city = (responses['B06'] as string) || 'не указан'
-  const contextSummary = `Страна: ${country}, город: ${city}, национальность: ${ethnicity}. Учти культурный контекст (темперамент, типичный размер круга, семейные ожидания) при интерпретации чисел — но не строй выводы только на национальности, это один из факторов.`
+  const psycheSummary = lang === 'en'
+    ? `PHQ-9=${phq9} (${phq9<5?'normal':phq9<10?'mild':phq9<15?'moderate':'severe'}), GAD-7=${gad7}, stress PSS-4=${pss4}, conscientiousness ${big5.Conscientiousness.toFixed(1)}/5, neuroticism ${big5.Neuroticism.toFixed(1)}/5`
+    : `PHQ-9=${phq9} (${phq9<5?'норма':phq9<10?'лёгкая':phq9<15?'умеренная':'тяжёлая'}), GAD-7=${gad7}, стресс PSS-4=${pss4}, добросовестность ${big5.Conscientiousness.toFixed(1)}/5, нейротизм ${big5.Neuroticism.toFixed(1)}/5`
 
-  const userExpectText = responses['D02'] as string ?? 'не указано'
+  const ethnicity = (responses['B24'] as string) || (lang === 'en' ? 'not specified' : 'не указана')
+  const country   = (responses['B05'] as string) || (lang === 'en' ? 'not specified' : 'не указана')
+  const city      = (responses['B06'] as string) || (lang === 'en' ? 'not specified' : 'не указан')
+  const contextSummary = lang === 'en'
+    ? `Country: ${country}, city: ${city}, nationality: ${ethnicity}. Consider cultural context (temperament, typical circle size, family expectations) when interpreting numbers — but don't base conclusions solely on nationality.`
+    : `Страна: ${country}, город: ${city}, национальность: ${ethnicity}. Учти культурный контекст (темперамент, типичный размер круга, семейные ожидания) при интерпретации чисел — но не строй выводы только на национальности, это один из факторов.`
+
+  const userExpectText = responses['D02'] as string ?? (lang === 'en' ? 'not specified' : 'не указано')
   const userFreeNoteRaw = responses['G01']
   const userFreeNote = (typeof userFreeNoteRaw === 'string' ? userFreeNoteRaw : '').trim()
 
@@ -95,8 +101,9 @@ export async function runPredictionPipeline(responses: Responses) {
       if (modelMatch) {
         const diff = Math.abs(clamp((ue.probability ?? 50) / 100, 0, 1) - modelMatch.probability)
         if (diff > 0.25) {
-          mismatches.push(
-            `«${ue.label}»: ты оцениваешь в ${ue.probability}%, модель — ${Math.round(modelMatch.probability*100)}%`
+          mismatches.push(lang === 'en'
+            ? `"${ue.label}": you estimate ${ue.probability}%, model — ${Math.round(modelMatch.probability*100)}%`
+            : `«${ue.label}»: ты оцениваешь в ${ue.probability}%, модель — ${Math.round(modelMatch.probability*100)}%`
           )
         }
       }
@@ -109,6 +116,7 @@ export async function runPredictionPipeline(responses: Responses) {
     socSummary, psycheSummary, mismatches,
     contextSummary,
     userFreeNote,
+    lang,
   })
 
   return {

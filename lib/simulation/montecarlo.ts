@@ -27,7 +27,8 @@ function calcEntropy(probs: number[]): number {
 export function runSimulation(
   eventProbs: EventResult[],
   blLambda: number,
-  n = 10000
+  n = 10000,
+  lang: 'en' | 'ru' = 'ru'
 ): SimulationResult {
   const positives = eventProbs.filter(e => e.direction === 'positive')
   const negatives = eventProbs.filter(e => e.direction === 'negative')
@@ -73,7 +74,26 @@ export function runSimulation(
   const topPos = positives.filter(e => e.probability > 0.3).slice(0, 2).map(e => e.label).join(', ')
   const topNeg = negatives.filter(e => e.probability > 0.25).slice(0, 2).map(e => e.label).join(', ')
 
-  const scenarios: Scenario[] = ([
+  const scenarios: Scenario[] = (lang === 'en' ? [
+    {
+      label: 'Base scenario',
+      probability: Math.round(baseP * 100),
+      description: `A moderate year without dramatic shifts. ${topPos ? `Likely: ${topPos}.` : ''} ${topNeg ? `Risks: ${topNeg}.` : ''}`,
+      type: 'base' as const,
+    },
+    {
+      label: 'Optimistic scenario',
+      probability: Math.round(optP * 100),
+      description: `A year of growth and positive change. Key goals are achieved, social circle is supportive. ${topPos ? `Includes: ${topPos}.` : ''}`,
+      type: 'optimistic' as const,
+    },
+    {
+      label: 'Pessimistic scenario',
+      probability: Math.round(pesP * 100),
+      description: `A challenging year. Stress accumulates; unexpected setbacks from surroundings are possible. ${topNeg ? `Risks: ${topNeg}.` : ''}`,
+      type: 'pessimistic' as const,
+    },
+  ] : [
     {
       label: 'Базовый сценарий',
       probability: Math.round(baseP * 100),

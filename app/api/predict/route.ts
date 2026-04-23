@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 import { runPredictionPipeline } from '@/lib/scoring/pipeline'
 
 export async function POST(req: NextRequest) {
-  const { userId, answers } = await req.json()
+  const { userId, answers, lang } = await req.json()
 
   if (!userId) {
     return NextResponse.json({ error: 'No userId' }, { status: 400 })
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   // Run pipeline async (we wait for it since we need the result)
   try {
-    const result = await runPredictionPipeline(answers)
+    const result = await runPredictionPipeline(answers, (lang === 'en' ? 'en' : 'ru') as 'en' | 'ru')
 
     if (result.crisis) {
       await prisma.prediction.update({

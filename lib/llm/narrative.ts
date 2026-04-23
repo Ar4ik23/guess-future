@@ -29,6 +29,7 @@ export interface NarrativePayload {
   mismatches: string[]
   entropy: number
   userFreeNote?: string
+  lang?: 'en' | 'ru'
 }
 
 export interface AdviceItem {
@@ -47,6 +48,53 @@ export interface NarrativeResult {
   eventExplanations: Record<string, string>
   scenarioExplanations: Record<string, string>
 }
+
+const SYSTEM_PROMPT_EN = `You are an experienced psychological analyst writing a personalised annual forecast based on a person's numerical survey data.
+
+STRICT RULES — violating even one = task failure:
+
+1. RESPOND ONLY WITH VALID JSON, no markdown, no prefixes, no comments. No \`\`\`json blocks.
+
+2. Never invent facts. Use ONLY the numbers and data provided. If something isn't there — don't mention it.
+
+3. Address the person as "you", calmly, without grandiosity, without mysticism.
+
+4. NARRATIVE must have one central thesis (the main observation about the year), not a list of events. Thesis → 3-4 supporting facts → consequence.
+
+5. Causal connections are mandatory. Not "your X=42 and Y=13" but "X causes Y because...".
+
+6. On DISCREPANCIES with the person's expectations — speak directly: "you think X, but the data shows Y, because...".
+
+7. ADVICE must be specific, low-effort, with a measurable result. Not "develop yourself" but "schedule 2 contacts from your close circle every Friday — meet every 2 weeks".
+
+8. Language — English, natural, no jargon.
+
+9. Narrative length: 3-5 paragraphs, 3-5 sentences each.
+
+10. If data is contradictory or entropy is high — honestly state in summary "forecast is uncertain".
+
+RESPONSE JSON STRUCTURE:
+{
+  "summary": "one sentence, the main conclusion about the year (20-40 words)",
+  "narrative": "coherent text 3-5 paragraphs with one central thesis",
+  "strengths": ["3-5 specific strengths this person can rely on"],
+  "risks": ["2-3 main risks with explanation of cause"],
+  "advice": [
+    {"title":"short heading","text":"specific action with measurable result","priority":"high|medium|low"}
+  ],
+  "eventExplanations": {
+    "event_id_1": "why this probability for this event — 1-2 sentences based on specific indices",
+    "event_id_2": "..."
+  },
+  "scenarioExplanations": {
+    "base": "why the base scenario has this percentage — 2-3 sentences based on indices and events",
+    "optimistic": "why the optimistic scenario has this percentage — what needs to happen for it to occur",
+    "pessimistic": "why the pessimistic scenario has this percentage — which risks need to materialise"
+  }
+}
+
+Provide 4-6 pieces of advice, from high to low priority. Explain at least 6 main events. Explain all 3 scenarios.
+If nationality and country are in the context — consider the cultural factor but don't make it the sole basis for conclusions.`
 
 const SYSTEM_PROMPT = `Ты — опытный аналитик-психолог, который пишет персональный годовой прогноз человеку на основе числовых данных его опроса.
 
@@ -104,6 +152,8 @@ export async function generateNarrative(payload: NarrativePayload): Promise<Narr
     }
   }
 
+  const isEn = payload.lang === 'en'
+
   const eventsText = payload.topEvents.slice(0, 10).map(e =>
     `  ${e.eventId} ("${e.label}"): ${Math.round(e.probability * 100)}% · ${e.direction}`
   ).join('\n')
@@ -114,7 +164,59 @@ export async function generateNarrative(payload: NarrativePayload): Promise<Narr
 
   const big5 = (k: string) => (payload.scores[k] ?? 3).toFixed(1)
 
-  const userPrompt = `ДАННЫЕ ЧЕЛОВЕКА:
+  const userPrompt = isEn ? `PERSON DATA:
+
+━━━ INDICES (0-100, higher = better, except PHQ9/GAD7) ━━━
+LSI (overall stability): ${Math.round(payload.scores.LSI ?? 50)}
+Health: ${Math.round(payload.scores.Health ?? 50)}
+Finance: ${Math.round(payload.scores.Finance ?? 50)}
+Work: ${Math.round(payload.scores.Work ?? 50)}
+Psyche: ${Math.round(payload.scores.Psyche ?? 50)}
+Social: ${Math.round(payload.scores.Social ?? 50)}
+Habits: ${Math.round(payload.scores.Habits ?? 50)}
+
+━━━ CLINICAL SCALES ━━━
+PHQ-9 (depression, 0-27): ${Math.round(payload.scores.PHQ9 ?? 0)} ${(payload.scores.PHQ9 ?? 0) < 5 ? '(normal)' : (payload.scores.PHQ9 ?? 0) < 10 ? '(mild)' : (payload.scores.PHQ9 ?? 0) < 15 ? '(moderate)' : '(severe)'}
+GAD-7 (anxiety, 0-21): ${Math.round(payload.scores.GAD7 ?? 0)} ${(payload.scores.GAD7 ?? 0) < 5 ? '(normal)' : (payload.scores.GAD7 ?? 0) < 10 ? '(mild)' : '(moderate/severe)'}
+
+━━━ BIG5 PERSONALITY (1-5) ━━━
+Extraversion: ${big5('Extraversion')}
+Conscientiousness: ${big5('Conscientiousness')}
+Neuroticism: ${big5('Neuroticism')}
+Openness: ${big5('Openness')}
+Agreeableness: ${big5('Agreeableness')}
+
+━━━ CALIBRATION ━━━
+Rationality (ρ): ${(payload.scores.Rho ?? 0.5).toFixed(2)}
+Past-year realism (r_self): ${(payload.scores.RSelf ?? 0.5).toFixed(2)}
+
+━━━ EVENT FORECAST (use id in eventExplanations) ━━━
+${eventsText}
+
+━━━ YEAR SCENARIOS ━━━
+${scenariosText}
+
+━━━ CONTEXT ━━━
+SOCIAL SUMMARY: ${payload.socSummary}
+PSYCHOLOGICAL SUMMARY: ${payload.psycheSummary}
+${payload.contextSummary ? `CONTEXT (country/nationality): ${payload.contextSummary}` : ''}
+
+PERSON'S OWN EXPECTATIONS: ${payload.userExpectations || '(not specified)'}
+
+${payload.userFreeNote && payload.userFreeNote.length > 0 ? `━━━ FREE COMMENT FROM USER (block G) ━━━
+The person wrote this as additional context that didn't fit the survey. Use it in the narrative, advice, strengths, risks and event explanations. If specific circumstances, plans, relationships, health concerns or fears are mentioned — reference them. Don't paraphrase verbatim, but cite as fact ("you mention that...", "given that..."):
+
+"""
+${payload.userFreeNote}
+"""
+` : ''}
+
+${payload.mismatches.length > 0 ? `━━━ DISCREPANCIES BETWEEN USER AND MODEL ━━━\n${payload.mismatches.join('\n')}` : ''}
+
+FORECAST ENTROPY: ${payload.entropy.toFixed(2)} ${payload.entropy > 1.5 ? '(high — forecast is less certain, mention this)' : '(moderate)'}
+
+NOW: return JSON strictly per the described schema, in English, with one central thesis in narrative and specific actionable advice.`
+  : `ДАННЫЕ ЧЕЛОВЕКА:
 
 ━━━ ИНДЕКСЫ (0-100, выше = лучше, кроме PHQ9/GAD7) ━━━
 LSI (общая устойчивость): ${Math.round(payload.scores.LSI ?? 50)}
@@ -173,7 +275,7 @@ ${payload.mismatches.length > 0 ? `━━━ РАСХОЖДЕНИЯ МЕЖДУ �
     temperature: 0.7,
     response_format: { type: 'json_object' },
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: isEn ? SYSTEM_PROMPT_EN : SYSTEM_PROMPT },
       { role: 'user', content: userPrompt },
     ],
   })

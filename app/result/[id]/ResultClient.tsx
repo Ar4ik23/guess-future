@@ -7,6 +7,31 @@ import { Scenario } from '@/lib/simulation/montecarlo'
 import { AdviceItem } from '@/lib/llm/narrative'
 import { useLanguage } from '@/lib/i18n/context'
 import { UI } from '@/lib/i18n/ui'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+
+const EVENT_LABELS_EN: Record<string, string> = {
+  job_change:         'Job / employment change',
+  income_growth:      '20%+ income growth',
+  job_loss:           'Job / income loss',
+  new_relationship:   'Starting a serious relationship',
+  relationship_break: 'Relationship breakup',
+  marriage:           'Getting married',
+  child_born:         'Having a child',
+  relocation:         'Moving to another city / country',
+  health_problem:     'Significant health deterioration',
+  start_therapy:      'Starting psychotherapy',
+  launch_project:     'Launching own project / business',
+  financial_shock:    'Financial shock (3+ months income lost)',
+  circle_shock:       'Crisis in close circle',
+  complete_learning:  'Completing major training / course',
+  drop_learning:      'Starting and dropping a course',
+}
+
+const SCENARIO_LABELS_EN: Record<string, string> = {
+  base:        'Base scenario',
+  optimistic:  'Optimistic scenario',
+  pessimistic: 'Pessimistic scenario',
+}
 
 interface PredictionData {
   id: string
@@ -41,10 +66,11 @@ function Chevron({ open }: { open: boolean }) {
 
 type ResultT = typeof UI['en']['result'] | typeof UI['ru']['result']
 
-function ScenarioRow({ scenario, explanation, t }: {
+function ScenarioRow({ scenario, explanation, t, lang }: {
   scenario: Scenario
   explanation?: string
   t: ResultT
+  lang: 'en' | 'ru'
 }) {
   const [open, setOpen] = useState(false)
   return (
@@ -57,7 +83,9 @@ function ScenarioRow({ scenario, explanation, t }: {
         <div className="grid grid-cols-[1fr_minmax(120px,1fr)_56px] gap-4 items-center">
           <div className="flex items-center gap-3">
             <Chevron open={open} />
-            <span className="font-serif text-[17px] text-text">{scenario.label}</span>
+            <span className="font-serif text-[17px] text-text">
+              {lang === 'en' ? (SCENARIO_LABELS_EN[scenario.type] ?? scenario.label) : scenario.label}
+            </span>
           </div>
           <div className="h-[6px] bg-rule relative overflow-hidden">
             <div
@@ -87,10 +115,11 @@ function ScenarioRow({ scenario, explanation, t }: {
   )
 }
 
-function EventRow({ ev, explanation, t }: {
+function EventRow({ ev, explanation, t, lang }: {
   ev: EventResult
   explanation?: string
   t: ResultT
+  lang: 'en' | 'ru'
 }) {
   const [open, setOpen] = useState(false)
   const pct = Math.round(ev.probability * 100)
@@ -106,7 +135,9 @@ function EventRow({ ev, explanation, t }: {
       >
         <div className="flex items-center gap-3 mb-1.5">
           <Chevron open={open} />
-          <span className="font-serif text-[16px] text-text flex-1">{ev.label}</span>
+          <span className="font-serif text-[16px] text-text flex-1">
+            {lang === 'en' ? (EVENT_LABELS_EN[ev.eventId] ?? ev.label) : ev.label}
+          </span>
           <span className={`ui text-[11px] uppercase tracking-[0.1em] ${dirTextCls[ev.direction]}`}>
             {dirLabels[ev.direction]}
           </span>
@@ -248,7 +279,10 @@ export function ResultClient({ data }: { data: PredictionData }) {
           <Link href="/" className="ui text-[13px] font-medium text-text hover:opacity-70">
             Test Guringtona
           </Link>
-          <span className="ui text-[13px] text-muted">{t.navLabel}</span>
+          <div className="flex items-center gap-4">
+            <span className="ui text-[13px] text-muted">{t.navLabel}</span>
+            <LanguageSwitcher />
+          </div>
         </div>
       </nav>
 
@@ -297,7 +331,7 @@ export function ResultClient({ data }: { data: PredictionData }) {
           <p className="ui text-[13px] text-muted mb-6">{t.scenariosHint}</p>
           <div className="border-t border-rule">
             {sortedScenarios.map(s => (
-              <ScenarioRow key={s.type} scenario={s} explanation={scenarioExplanations[s.type]} t={t} />
+              <ScenarioRow key={s.type} scenario={s} explanation={scenarioExplanations[s.type]} t={t} lang={lang} />
             ))}
           </div>
         </section>
@@ -322,7 +356,7 @@ export function ResultClient({ data }: { data: PredictionData }) {
           <p className="ui text-[13px] text-muted mb-6">{t.eventsHint}</p>
           <div className="border-t border-rule">
             {top10.map(ev => (
-              <EventRow key={ev.eventId} ev={ev} explanation={eventExplanations[ev.eventId]} t={t} />
+              <EventRow key={ev.eventId} ev={ev} explanation={eventExplanations[ev.eventId]} t={t} lang={lang} />
             ))}
           </div>
         </section>
